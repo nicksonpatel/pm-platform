@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react'
 import { Workspace, Project, List, Task, Comment } from './types'
 import { supabase, isDemoMode } from './supabase'
 import { mockWorkspaces, mockProjects, mockLists, mockTasks, mockComments, DEMO_USER } from './mock-data'
@@ -103,12 +103,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updated_at: new Date().toISOString(),
     }
 
-    if (isDemoMode) {
+    if (isDemoMode || !supabase) {
       setState(s => ({ ...s, workspaces: [...s.workspaces, newWorkspace] }))
       return
     }
 
-    await supabase!.from('workspaces').insert(newWorkspace)
+    await supabase.from('workspaces').insert(newWorkspace)
     setState(s => ({ ...s, workspaces: [...s.workspaces, newWorkspace] }))
   }, [])
 
@@ -124,12 +124,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updated_at: new Date().toISOString(),
     }
 
-    if (isDemoMode) {
+    if (isDemoMode || !supabase) {
       setState(s => ({ ...s, projects: [...s.projects, newProject] }))
       return
     }
 
-    await supabase!.from('projects').insert(newProject)
+    await supabase.from('projects').insert(newProject)
     setState(s => ({ ...s, projects: [...s.projects, newProject] }))
   }, [])
 
@@ -142,12 +142,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updated_at: new Date().toISOString(),
     }
 
-    if (isDemoMode) {
+    if (isDemoMode || !supabase) {
       setState(s => ({ ...s, lists: [...s.lists, newList] }))
       return
     }
 
-    await supabase!.from('lists').insert(newList)
+    await supabase.from('lists').insert(newList)
     setState(s => ({ ...s, lists: [...s.lists, newList] }))
   }, [])
 
@@ -169,17 +169,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updated_at: new Date().toISOString(),
     }
 
-    if (isDemoMode) {
+    if (isDemoMode || !supabase) {
       setState(s => ({ ...s, tasks: [...s.tasks, newTask] }))
       return
     }
 
-    await supabase!.from('tasks').insert(newTask)
+    await supabase.from('tasks').insert(newTask)
     setState(s => ({ ...s, tasks: [...s.tasks, newTask] }))
   }, [state.tasks])
 
   const updateTask = useCallback(async (taskId: string, updates: Partial<Task>) => {
-    if (isDemoMode) {
+    if (isDemoMode || !supabase) {
       setState(s => ({
         ...s,
         tasks: s.tasks.map(t => t.id === taskId ? { ...t, ...updates, updated_at: new Date().toISOString() } : t)
@@ -187,7 +187,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    await supabase!.from('tasks').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', taskId)
+    await supabase.from('tasks').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', taskId)
     setState(s => ({
       ...s,
       tasks: s.tasks.map(t => t.id === taskId ? { ...t, ...updates, updated_at: new Date().toISOString() } : t)
@@ -195,17 +195,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const deleteTask = useCallback(async (taskId: string) => {
-    if (isDemoMode) {
+    if (isDemoMode || !supabase) {
       setState(s => ({ ...s, tasks: s.tasks.filter(t => t.id !== taskId), comments: s.comments.filter(c => c.task_id !== taskId) }))
       return
     }
 
-    await supabase!.from('tasks').delete().eq('id', taskId)
+    await supabase.from('tasks').delete().eq('id', taskId)
     setState(s => ({ ...s, tasks: s.tasks.filter(t => t.id !== taskId), comments: s.comments.filter(c => c.task_id !== taskId) }))
   }, [])
 
   const moveTask = useCallback(async (taskId: string, newListId: string, newPosition: number) => {
-    if (isDemoMode) {
+    if (isDemoMode || !supabase) {
       setState(s => ({
         ...s,
         tasks: s.tasks.map(t => t.id === taskId ? { ...t, list_id: newListId, position: newPosition } : t)
@@ -213,7 +213,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    await supabase!.from('tasks').update({ list_id: newListId, position: newPosition }).eq('id', taskId)
+    await supabase.from('tasks').update({ list_id: newListId, position: newPosition }).eq('id', taskId)
     setState(s => ({
       ...s,
       tasks: s.tasks.map(t => t.id === taskId ? { ...t, list_id: newListId, position: newPosition } : t)
@@ -231,12 +231,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       created_at: new Date().toISOString(),
     }
 
-    if (isDemoMode) {
+    if (isDemoMode || !supabase) {
       setState(s => ({ ...s, comments: [...s.comments, newComment] }))
       return
     }
 
-    await supabase!.from('comments').insert(newComment)
+    await supabase.from('comments').insert(newComment)
     setState(s => ({ ...s, comments: [...s.comments, newComment] }))
   }, [])
 

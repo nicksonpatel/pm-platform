@@ -54,6 +54,34 @@ export interface Comment {
   created_at: string
 }
 
+export interface UserProfile {
+  id: string
+  email: string
+  full_name: string | null
+  avatar_url: string | null
+  created_at: string
+}
+
+export interface WorkspaceMember {
+  id: string
+  workspace_id: string
+  user_id: string
+  role: 'owner' | 'admin' | 'member'
+  created_at: string
+}
+
+export interface WorkspaceInvite {
+  id: string
+  workspace_id: string
+  email: string
+  role: 'admin' | 'member'
+  invited_by: string
+  token: string
+  accepted: boolean
+  created_at: string
+  expires_at: string
+}
+
 export const STATUS_COLORS: Record<TaskStatus, string> = {
   'todo': 'bg-slate-100 text-slate-700',
   'in_progress': 'bg-blue-100 text-blue-700',
