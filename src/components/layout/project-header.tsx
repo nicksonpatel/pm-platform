@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { List, LayoutGrid, Calendar, Plus, Filter, MoreHorizontal } from 'lucide-react'
+import { List, LayoutGrid, Calendar, Plus } from 'lucide-react'
 
 export function ProjectHeader() {
   const { currentProject, currentWorkspace, view, setView, addList } = useApp()
@@ -24,7 +24,7 @@ export function ProjectHeader() {
   }
 
   return (
-    <div className="h-14 bg-white flex items-center justify-between px-3 md:px-4 border-b sticky top-0 z-10">
+    <div className="h-14 bg-white border-b flex items-center justify-between px-3 md:px-4 sticky top-0 z-10">
       <div className="flex items-center gap-2 min-w-0">
         <span className="text-xl md:text-2xl">{currentProject.icon}</span>
         <div className="min-w-0">
@@ -42,7 +42,7 @@ export function ProjectHeader() {
       </div>
 
       <div className="flex items-center gap-1 md:gap-2">
-        {/* View Switcher - Larger on mobile */}
+        {/* View Switcher */}
         <div className="flex items-center bg-slate-100 rounded-lg p-1">
           <Button
             variant={view === 'list' ? 'secondary' : 'ghost'}
@@ -72,10 +72,6 @@ export function ProjectHeader() {
             <span className="ml-1 md:hidden text-xs">Cal</span>
           </Button>
         </div>
-
-        <Button variant="ghost" size="icon" className="w-10 h-10 md:w-8 md:h-8">
-          <Filter className="w-4 h-4" />
-        </Button>
 
         <Dialog open={newListOpen} onOpenChange={setNewListOpen}>
           <DialogTrigger>

@@ -169,13 +169,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updated_at: new Date().toISOString(),
     }
 
+    // Always update local state first (optimistic update)
+    setState(s => ({ ...s, tasks: [...s.tasks, newTask] }))
+
     if (isDemoMode || !supabase) {
-      setState(s => ({ ...s, tasks: [...s.tasks, newTask] }))
       return
     }
 
-    await supabase.from('tasks').insert(newTask)
-    setState(s => ({ ...s, tasks: [...s.tasks, newTask] }))
+    // Try to persist to Supabase
+    const { error } = await supabase.from('tasks').insert(newTask)
+    if (error) {
+      console.error('Failed to save task to Supabase:', error.message)
+      // Rollback local state on error
+      setState(s => ({ ...s, tasks: s.tasks.filter(t => t.id !== newTask.id) }))
+    }
   }, [state.tasks])
 
   const updateTask = useCallback(async (taskId: string, updates: Partial<Task>) => {

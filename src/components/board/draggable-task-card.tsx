@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useApp } from '@/lib/store'
-import { Task, PRIORITY_COLORS, PRIORITY_LABELS, PRIORITY_LABELS as labels } from '@/lib/types'
+import { Task, PRIORITY_COLORS, PRIORITY_LABELS } from '@/lib/types'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
+import { AssigneePicker } from '@/components/workspace/assignee-picker'
 import { MoreHorizontal, Calendar as CalendarIcon, MessageSquare, User, Trash2 } from 'lucide-react'
 import { format, isToday, isTomorrow, isPast } from 'date-fns'
 import { TaskStatus, TaskPriority } from '@/lib/types'
@@ -60,6 +61,13 @@ export function DraggableTaskCard({ task, isDragging }: TaskCardProps) {
 
   const handleDueDateChange = async (date: Date | null) => {
     await updateTask(task.id, { due_date: date?.toISOString().split('T')[0] || null })
+  }
+
+  const handleAssigneeChange = async (userId: string | null, userName: string | null) => {
+    await updateTask(task.id, { 
+      assignee_id: userId,
+      assignee_name: userName 
+    })
   }
 
   const handleTitleSave = async () => {
@@ -260,13 +268,8 @@ export function DraggableTaskCard({ task, isDragging }: TaskCardProps) {
                 </Popover>
               </div>
 
-              <div>
-                <Label className="text-xs text-slate-500 uppercase mb-2 block">Assignee</Label>
-                <Button variant="outline" className="w-full justify-start h-10 text-sm">
-                  <User className="w-4 h-4 mr-2" />
-                  {task.assignee_name || 'Unassigned'}
-                </Button>
-              </div>
+              {/* Assignee Picker */}
+              <AssigneePicker task={task} onAssign={handleAssigneeChange} />
             </div>
           </div>
         </DialogContent>
