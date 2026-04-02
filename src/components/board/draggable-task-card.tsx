@@ -1,8 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { useApp } from '@/lib/store'
-import { Task, PRIORITY_COLORS, PRIORITY_LABELS } from '@/lib/types'
+import { Task, PRIORITY_COLORS, PRIORITY_LABELS, PRIORITY_LABELS as labels } from '@/lib/types'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -14,21 +16,36 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
-import { Separator } from '@/components/ui/separator'
 import { MoreHorizontal, Calendar as CalendarIcon, MessageSquare, User, Trash2 } from 'lucide-react'
 import { format, isToday, isTomorrow, isPast } from 'date-fns'
 import { TaskStatus, TaskPriority } from '@/lib/types'
 
 interface TaskCardProps {
   task: Task
+  isDragging?: boolean
 }
 
-export function TaskCard({ task }: TaskCardProps) {
+export function DraggableTaskCard({ task, isDragging }: TaskCardProps) {
   const { updateTask, deleteTask, addComment, comments } = useApp()
   const [detailOpen, setDetailOpen] = useState(false)
   const [comment, setComment] = useState('')
   const [editingTitle, setEditingTitle] = useState(false)
   const [title, setTitle] = useState(task.title)
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging: isSortableDragging,
+  } = useSortable({ id: task.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isSortableDragging ? 0.5 : 1,
+  }
 
   const taskComments = comments.filter(c => c.task_id === task.id)
   const isOverdue = task.due_date && isPast(new Date(task.due_date)) && task.status !== 'done'
@@ -67,54 +84,51 @@ export function TaskCard({ task }: TaskCardProps) {
 
   return (
     <>
-      {/* Task Card - Larger touch target */}
-      <Card
-        className="p-3 md:p-3 cursor-pointer hover:shadow-md transition-shadow bg-white touch-manipulation min-h-[80px] md:min-h-0"
-        onClick={() => setDetailOpen(true)}
+      <div
+        ref={setNodeRef}
+        style={style}
+        {...attributes}
+        {...listeners}
+        className="touch-manipulation"
       >
-        {/* Priority + Actions Row */}
-        <div className="flex items-center justify-between mb-2">
-          <Badge className={`text-xs px-2 py-0.5 ${PRIORITY_COLORS[task.priority]}`}>
-            {PRIORITY_LABELS[task.priority]}
-          </Badge>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="w-8 h-8 md:w-5 md:h-5 -mr-1 -mt-1 opacity-0 md:opacity-100 md:group-hover:opacity-100"
-            onClick={e => e.stopPropagation()}
-          >
-            <MoreHorizontal className="w-4 h-4" />
-          </Button>
-        </div>
+        <Card
+          className={`p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow bg-white min-h-[80px] ${
+            isDragging ? 'shadow-lg ring-2 ring-indigo-500' : ''
+          } ${isSortableDragging ? 'opacity-50' : ''}`}
+          onClick={() => setDetailOpen(true)}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <Badge className={`text-xs px-2 py-0.5 ${PRIORITY_COLORS[task.priority]}`}>
+              {PRIORITY_LABELS[task.priority]}
+            </Badge>
+          </div>
 
-        {/* Title */}
-        <h4 className="text-sm font-medium text-slate-800 mb-2 line-clamp-2">{task.title}</h4>
+          <h4 className="text-sm font-medium text-slate-800 mb-2 line-clamp-2">{task.title}</h4>
 
-        {/* Meta - Larger touch targets */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {task.due_date && (
-            <span className={`text-xs flex items-center gap-1 px-2 py-1 rounded bg-slate-100 ${isOverdue ? 'text-red-600' : 'text-slate-600'}`}>
-              <CalendarIcon className="w-3 h-3" />
-              {formatDueDate(task.due_date)}
-            </span>
-          )}
-          {taskComments.length > 0 && (
-            <span className="text-xs flex items-center gap-1 px-2 py-1 rounded bg-slate-100 text-slate-600">
-              <MessageSquare className="w-3 h-3" />
-              {taskComments.length}
-            </span>
-          )}
-          {task.assignee_name && (
-            <Avatar className="w-6 h-6 -ml-1">
-              <AvatarFallback className="text-[10px] bg-indigo-100 text-indigo-700">
-                {task.assignee_name.slice(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-          )}
-        </div>
-      </Card>
+          <div className="flex items-center gap-2 flex-wrap">
+            {task.due_date && (
+              <span className={`text-xs flex items-center gap-1 px-2 py-1 rounded bg-slate-100 ${isOverdue ? 'text-red-600' : 'text-slate-600'}`}>
+                <CalendarIcon className="w-3 h-3" />
+                {formatDueDate(task.due_date)}
+              </span>
+            )}
+            {taskComments.length > 0 && (
+              <span className="text-xs flex items-center gap-1 px-2 py-1 rounded bg-slate-100 text-slate-600">
+                <MessageSquare className="w-3 h-3" />
+                {taskComments.length}
+              </span>
+            )}
+            {task.assignee_name && (
+              <Avatar className="w-6 h-6 -ml-1">
+                <AvatarFallback className="text-[10px] bg-indigo-100 text-indigo-700">
+                  {task.assignee_name.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            )}
+          </div>
+        </Card>
+      </div>
 
-      {/* Task Detail Modal - Full screen on mobile */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader className="pb-2">
@@ -145,9 +159,7 @@ export function TaskCard({ task }: TaskCardProps) {
           </DialogHeader>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-2">
-            {/* Main Content */}
             <div className="md:col-span-3 space-y-4">
-              {/* Description */}
               <div>
                 <Label className="text-xs text-slate-500 uppercase mb-2 block">Description</Label>
                 <Textarea
@@ -158,7 +170,6 @@ export function TaskCard({ task }: TaskCardProps) {
                 />
               </div>
 
-              {/* Comments */}
               <div>
                 <Label className="text-xs text-slate-500 uppercase mb-2 block">
                   Comments ({taskComments.length})
@@ -196,7 +207,6 @@ export function TaskCard({ task }: TaskCardProps) {
               </div>
             </div>
 
-            {/* Sidebar - Larger touch targets */}
             <div className="space-y-4">
               <div>
                 <Label className="text-xs text-slate-500 uppercase mb-2 block">Status</Label>
@@ -249,8 +259,6 @@ export function TaskCard({ task }: TaskCardProps) {
                   </PopoverContent>
                 </Popover>
               </div>
-
-              <Separator />
 
               <div>
                 <Label className="text-xs text-slate-500 uppercase mb-2 block">Assignee</Label>

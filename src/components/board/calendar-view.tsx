@@ -18,30 +18,32 @@ export function CalendarView() {
   const projectTasks = tasks.filter(t => projectLists.some(l => l.id === t.list_id))
   const tasksWithDue = projectTasks.filter(t => t.due_date)
 
-  const tasksOnDate = selectedDate 
+  const tasksOnDate = selectedDate
     ? tasksWithDue.filter(t => isSameDay(new Date(t.due_date!), selectedDate))
     : []
 
   return (
-    <div className="flex-1 overflow-auto p-4">
-      <div className="grid grid-cols-3 gap-4">
-        <div className="col-span-2">
-          <Card>
-            <CardContent className="p-4">
-              <Calendar 
-                mode="single" 
-                selected={selectedDate} 
+    <div className="flex-1 overflow-auto p-3 md:p-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Calendar - Full width on mobile */}
+        <div className="md:col-span-2">
+          <Card className="md:sticky md:top-4">
+            <CardContent className="p-3 md:p-4">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
                 onSelect={setSelectedDate}
-                className="rounded-md"
+                className="rounded-md w-full"
               />
             </CardContent>
           </Card>
         </div>
 
+        {/* Tasks for selected date */}
         <div>
-          <Card>
+          <Card className="sticky top-4">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">
+              <CardTitle className="text-base md:text-base">
                 {selectedDate ? format(selectedDate, 'MMMM d, yyyy') : 'Select a date'}
               </CardTitle>
             </CardHeader>
@@ -49,16 +51,16 @@ export function CalendarView() {
               {tasksOnDate.length === 0 ? (
                 <p className="text-sm text-slate-500 text-center py-4">No tasks due on this date</p>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-[50vh] overflow-y-auto">
                   {tasksOnDate.map(task => (
-                    <div key={task.id} className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
+                    <div key={task.id} className="p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
                       <div className="flex items-start justify-between gap-2">
                         <p className="text-sm font-medium text-slate-800">{task.title}</p>
                         <Badge className={`${PRIORITY_COLORS[task.priority]} text-xs shrink-0`}>
                           {PRIORITY_LABELS[task.priority]}
                         </Badge>
                       </div>
-                      <div className="mt-1 flex items-center gap-2">
+                      <div className="mt-2 flex items-center gap-2">
                         <Badge variant="outline" className="text-xs">
                           {lists.find(l => l.id === task.list_id)?.name}
                         </Badge>
