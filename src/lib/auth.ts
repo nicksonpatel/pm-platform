@@ -23,24 +23,51 @@ export async function signUp(email: string, password: string, fullName: string) 
     email,
     password,
     options: {
-      data: { full_name: fullName }
+      data: { full_name: fullName },
+      emailRedirectTo: `${window.location.origin}/auth`
     }
   })
   
   if (error) throw error
   
-  // Create workspace for new user
-  if (data.user) {
-    await createPersonalWorkspace(data.user.id, fullName)
-  }
+  // NOTE: Workspace creation moved to first login
+  // Because signUp doesn't create an immediate session
   
   return data
+}
+
+// Call this on first login to create user's workspace
+export async function ensureUserWorkspace(userId: string, userName: string) {
+  if (!supabase) return
+  
+  // Check if user already has workspaces
+  const { data: members } = await supabase
+    .from('workspace_members')
+    .select('workspace_id')
+    .eq('user_id', userId)
+    .limit(1)
+  
+  // If user has no workspaces, create one
+  if (!members || members.length === 0) {
+    await createPersonalWorkspace(userId, userName)
+  }
 }
 
 export async function signIn(email: string, password: string) {
   if (!supabase) throw new Error('Supabase not configured')
   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
   if (error) throw error
+  
+  // Ensure user has a workspace on login
+  if (data.user) {
+    const profile = await supabase
+      .from('user_profiles')
+      .select('full_name')
+      .eq('id', data.user.id)
+      .single()
+    await ensureUserWorkspace(data.user.id, profile.data?.full_name || data.user.email || 'User')
+  }
+  
   return data
 }
 

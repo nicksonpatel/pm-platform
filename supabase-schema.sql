@@ -119,7 +119,7 @@ create policy "Workspace owners can delete" on workspaces for delete using (is_w
 
 -- WORKSPACE MEMBERS
 create policy "Workspace members can view members" on workspace_members for select using (is_workspace_member(workspace_id) or true);
-create policy "Authenticated users can add members" on workspace_members for insert with check (auth.uid() is not null);
+create policy "Anyone can insert members" on workspace_members for insert with check (auth.uid() is not null);
 create policy "Workspace admins can manage members" on workspace_members for update using (is_workspace_admin(workspace_id));
 create policy "Workspace admins can remove members" on workspace_members for delete using (is_workspace_admin(workspace_id));
 
