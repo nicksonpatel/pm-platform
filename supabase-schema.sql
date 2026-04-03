@@ -111,79 +111,89 @@ alter table tasks enable row level security;
 alter table comments enable row level security;
 alter table workspace_invites enable row level security;
 
+-- Helper function to check if user is workspace member
+create or replace function is_workspace_member(p_workspace_id uuid)
+returns boolean as $$
+  select exists (
+    select 1 from workspace_members 
+    where workspace_id = p_workspace_id and user_id = auth.uid()
+  );
+$$ language sql security definer;
+
+-- Helper function to check if user is workspace owner/admin
+create or replace function is_workspace_admin(p_workspace_id uuid)
+returns boolean as $$
+  select exists (
+    select 1 from workspace_members 
+    where workspace_id = p_workspace_id 
+    and user_id = auth.uid() 
+    and role in ('owner', 'admin')
+  );
+$$ language sql security definer;
+
 -- User Profiles: Users can read all profiles, update only their own
 create policy "Users can read all profiles" on user_profiles for select using (true);
 create policy "Users can update own profile" on user_profiles for update using (auth.uid() = id);
 
 -- Workspaces: Members can read their workspaces
 create policy "Members can read workspaces" on workspaces for select 
-  using (id in (select workspace_id from workspace_members where user_id = auth.uid()));
+  using (is_workspace_member(id));
 
 create policy "Users can create workspaces" on workspaces for insert with check (true);
 
 -- Workspace Members: Members can read member list
 create policy "Members can read workspace members" on workspace_members for select
-  using (workspace_id in (select workspace_id from workspace_members where user_id = auth.uid()));
+  using (is_workspace_member(workspace_id));
 
 create policy "Workspace owners/admins can manage members" on workspace_members for all
-  using (
-    workspace_id in (
-      select workspace_id from workspace_members 
-      where user_id = auth.uid() and role in ('owner', 'admin')
-    )
-  );
+  using (is_workspace_admin(workspace_id));
 
 -- Projects: Members can read projects in their workspaces
 create policy "Members can read projects" on projects for select
-  using (workspace_id in (select workspace_id from workspace_members where user_id = auth.uid()));
+  using (is_workspace_member(workspace_id));
 
 create policy "Members can create projects" on projects for insert
-  with check (workspace_id in (select workspace_id from workspace_members where user_id = auth.uid()));
+  with check (is_workspace_member(workspace_id));
 
 create policy "Members can update projects" on projects for update
-  using (workspace_id in (select workspace_id from workspace_members where user_id = auth.uid()));
+  using (is_workspace_member(workspace_id));
 
 -- Lists: Members can read lists in their projects
 create policy "Members can read lists" on lists for select
-  using (project_id in (
-    select p.id from projects p 
-    join workspace_members wm on p.workspace_id = wm.workspace_id 
-    where wm.user_id = auth.uid()
-  ));
+  using (is_workspace_member((select workspace_id from projects where id = project_id)));
 
 create policy "Members can manage lists" on lists for all
-  using (project_id in (
-    select p.id from projects p 
-    join workspace_members wm on p.workspace_id = wm.workspace_id 
-    where wm.user_id = auth.uid()
-  ));
+  using (is_workspace_admin((select workspace_id from projects where id = project_id)));
 
 -- Tasks: Members can read tasks in their projects
 create policy "Members can read tasks" on tasks for select
-  using (list_id in (
-    select l.id from lists l
-    join projects p on l.project_id = p.id
-    join workspace_members wm on p.workspace_id = wm.workspace_id
-    where wm.user_id = auth.uid()
-  ));
+  using (
+    exists (
+      select 1 from lists l
+      join projects p on l.project_id = p.id
+      where l.id = list_id and is_workspace_member(p.workspace_id)
+    )
+  );
 
 create policy "Members can manage tasks" on tasks for all
-  using (list_id in (
-    select l.id from lists l
-    join projects p on l.project_id = p.id
-    join workspace_members wm on p.workspace_id = wm.workspace_id
-    where wm.user_id = auth.uid()
-  ));
+  using (
+    exists (
+      select 1 from lists l
+      join projects p on l.project_id = p.id
+      where l.id = list_id and is_workspace_member(p.workspace_id)
+    )
+  );
 
 -- Comments: Members can read/write comments on their tasks
 create policy "Members can read comments" on comments for select
-  using (task_id in (
-    select t.id from tasks t
-    join lists l on t.list_id = l.id
-    join projects p on l.project_id = p.id
-    join workspace_members wm on p.workspace_id = wm.workspace_id
-    where wm.user_id = auth.uid()
-  ));
+  using (
+    exists (
+      select 1 from tasks t
+      join lists l on t.list_id = l.id
+      join projects p on l.project_id = p.id
+      where t.id = task_id and is_workspace_member(p.workspace_id)
+    )
+  );
 
 create policy "Members can create comments" on comments for insert
   with check (user_id = auth.uid());
@@ -196,12 +206,7 @@ create policy "Anyone can read invite by token" on workspace_invites for select
   using (true);
 
 create policy "Members can create invites" on workspace_invites for insert
-  with check (
-    workspace_id in (
-      select workspace_id from workspace_members 
-      where user_id = auth.uid() and role in ('owner', 'admin')
-    )
-  );
+  with check (is_workspace_admin(workspace_id));
 
 create policy "Users can accept invites" on workspace_invites for update
   using (accepted = false);
